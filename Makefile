@@ -14,7 +14,8 @@
 
 TARGET = eventrouter
 GOTARGET = github.com/openshift/$(TARGET)
-IMAGE_REPOSITORY_NAME ?= quay.io/openshift/logging-eventrouter:latest
+IMAGE_REPOSITORY_NAME ?= dnsfilter/eventrouter
+TAG ?= canary
 
 ifneq ($(VERBOSE),)
 VERBOSE_FLAG = -v
@@ -22,7 +23,7 @@ endif
 TESTARGS ?= $(VERBOSE_FLAG) -timeout 60s
 TEST_PKGS ?= $(GOTARGET)/sinks/...
 TEST = go test $(TEST_PKGS) $(TESTARGS)
-TARGET_PLATFORMS := linux/amd64,linux/arm64
+TARGET_PLATFORMS := linux/amd64
 
 build: fmt
 	CGO_ENABLED=$${CGO_ENABLED:-0} GOOS=$${TARGETOS:-} GOARCH=$${TARGETARCH:-} go build -mod=mod -o $(TARGET)
@@ -32,11 +33,10 @@ fmt:
 	@echo gofmt
 
 image:
-	podman build --platform=$(TARGET_PLATFORMS) --manifest eventrouter -f Dockerfile
-	podman tag localhost/eventrouter $(IMAGE_REPOSITORY_NAME)
+	docker build --platform=$(TARGET_PLATFORMS) -f Dockerfile -t $(IMAGE_REPOSITORY_NAME):$(TAG) .
 
 image-push: image
-	podman manifest push --all $(IMAGE_REPOSITORY_NAME) docker://$(IMAGE_REPOSITORY_NAME)
+	docker push $(IMAGE_REPOSITORY_NAME):$(TAG)
 
 .PHONY: image
 
